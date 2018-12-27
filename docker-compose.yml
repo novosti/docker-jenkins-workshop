@@ -11,6 +11,6 @@ services:
     working_dir: /app
     command: bash -c "bundle install && bundle exec ruby app_test.rb"
   production:
-    image: ${DOCKER_USER_ID}/ruby-app:${BUILD_NUMBER}
+    image: registry.gitlab.com/${DOCKER_USER_ID}/ruby-app:${BUILD_NUMBER}
     ports:
       - 10001:4567
