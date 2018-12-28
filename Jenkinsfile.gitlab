@@ -1,0 +1,35 @@
+node {
+ //withEnv(["DOCKER_HOST=tcp://docker.for.win.localhost:2375"]) {
+
+ withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'dockerhub',
+    usernameVariable: 'DOCKER_USER_ID', passwordVariable: 'DOCKER_USER_PASSWORD']]) {
+    
+    stage('pull') { 
+       git 'https://github.com/novosti/docker-jenkins-workshop.git'
+    }
+    stage('Unit test') {
+      //sh(script: 'docker run --rm -v "/D/root_dotnet/aspnetcore_exercise/tmp/jenkins_test_awesome-app:/app" -w /app ruby:2.3 sh -c "bundle install && bundle exec ruby app_test.rb"')
+      sh(script: 'docker-compose run --rm unit')
+    }
+    stage('Build') {
+       //sh(script: 'docker build --force-rm=true -t ${DOCKER_USER_ID}/ruby-app:latest . ')        
+       sh(script: 'docker-compose build app')
+    }
+    stage('Tag') {
+       //sh(script: 'docker tag ${DOCKER_USER_ID}/ruby-app ${DOCKER_USER_ID}/ruby-app:${BUILD_NUMBER}')
+       
+       // 태그생성: (도커허브 아니므로) 레지스서버(:포트) 를 붙여
+       //참고: https://docs.docker.com/engine/reference/commandline/push/#push-a-new-image-to-a-registry
+       sh(script: 'docker tag ${DOCKER_USER_ID}/ruby-app registry.gitlab.com/${DOCKER_USER_ID}/ruby-app:${BUILD_NUMBER}')
+    }
+    stage('Push') {
+      // docker hub 의 registry 대신 gitlab의 registry 에 push해봄 
+      sh(script: 'docker login -u ${DOCKER_USER_ID} -p ${DOCKER_USER_PASSWORD}  registry.gitlab.com  ')
+      sh(script: 'docker push registry.gitlab.com/${DOCKER_USER_ID}/ruby-app:${BUILD_NUMBER} ')
+    }  
+    stage('Deploy') {
+       sh(script: 'docker-compose up -d production')
+    }
+  }    
+//}    
+}
